@@ -51,118 +51,38 @@ function Dashboard({setView,onOpen,onAdd}:{setView:(v:View)=>void;onOpen:(m:Matc
 function MatchesView({onOpen}:{onOpen:(m:Match)=>void}) {
   const [period,setPeriod]=useState("Danas"); const [search,setSearch]=useState("");
   const filtered=matches.filter(m=>`${m.home.name} ${m.away.name} ${m.league}`.toLowerCase().includes(search.toLowerCase())).slice(0,period==="Sve"?50:12);
-  return …6156 tokens truncated…y, league_id bigint not null references public.leagues on delete cascade,
-  name text not null, starts_on date, ends_on date, is_current boolean not null default false, unique(league_id,name)
-);
-create table public.venues (
-  id bigint generated always as identity primary key, provider_id text unique, name text not null, city text, capacity integer
-);
-create table public.teams (
-  id bigint generated always as identity primary key, provider_id text unique, country_id bigint references public.countries,
-  name text not null, short_name text, logo_url text, venue_id bigint references public.venues, is_active boolean not null default true
-);
-create table public.matches (
-  id bigint generated always as identity primary key, provider_id text unique, league_id bigint not null references public.leagues,
-  season_id bigint references public.seasons, venue_id bigint references public.venues, home_team_id bigint not null references public.teams,
-  away_team_id bigint not null references public.teams, kickoff_at timestamptz not null, status public.match_status not null default 'scheduled',
-  minute smallint, ht_home smallint, ht_away smallint, ft_home smallint, ft_away smallint, et_home smallint, et_away smallint,
-  pen_home smallint, pen_away smallint, round text, importance smallint check(importance between 0 and 100), is_demo boolean not null default false,
-  created_at timestamptz not null default now(), updated_at timestamptz not null default now(), check(home_team_id <> away_team_id)
-);
-create index matches_kickoff_idx on public.matches(kickoff_at);
-create index matches_league_status_idx on public.matches(league_id,status);
+  return <div><div className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><h2 className="text-2xl font-black">Sve utakmice</h2><p className="text-sm text-slate-500">Raspored, kvote i procena rizika na jednom mestu.</p></div><div className="flex gap-2 overflow-x-auto">{["Juče","Danas","Sutra","Sve"].map(x=><button onClick={()=>setPeriod(x)} key={x} className={`rounded-xl px-4 py-2 text-xs font-bold ${period===x?"bg-ink text-white":"border border-slate-200 bg-white"}`}>{x}</button>)}</div></div><div className="card mt-6 flex flex-col gap-3 p-4 md:flex-row"><div className="relative flex-1"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/><input value={search} onChange={e=>setSearch(e.target.value)} className="focus-ring w-full rounded-xl border border-slate-200 py-2 pl-9 text-sm" placeholder="Tim ili liga"/></div>{["Sve države","Sve lige","Svaki rizik","Minimalna kvota"].map(x=><button key={x} className="flex items-center justify-between rounded-xl border border-slate-200 bg-white px-4 py-2 text-xs font-semibold">{x}<ChevronDown className="ml-5 h-3 w-3"/></button>)}<button className="rounded-xl bg-lime px-4 py-2 text-xs font-black"><Filter className="mr-2 inline h-3 w-3"/>Filteri</button></div><div className="mt-5 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{filtered.map(m=><MatchCard key={m.id} match={m} onOpen={onOpen}/>)}</div></div>
+}
 
-create table public.standings (
-  id bigint generated always as identity primary key, season_id bigint not null references public.seasons on delete cascade,
-  team_id bigint not null references public.teams, position smallint not null, played smallint default 0, won smallint default 0, drawn smallint default 0,
-  lost smallint default 0, goals_for smallint default 0, goals_against smallint default 0, points smallint default 0,
-  snapshot_at timestamptz not null default now(), unique(season_id,team_id,snapshot_at)
-);
-create table public.match_statistics (
-  match_id bigint primary key references public.matches on delete cascade, home_possession numeric(5,2), away_possession numeric(5,2),
-  home_shots smallint, away_shots smallint, home_shots_on_target smallint, away_shots_on_target smallint,
-  home_corners smallint, away_corners smallint, home_cards smallint, away_cards smallint, home_xg numeric(5,2), away_xg numeric(5,2),
-  payload jsonb not null default '{}'::jsonb, updated_at timestamptz not null default now()
-);
-create table public.match_events (
-  id bigint generated always as identity primary key, provider_id text unique, match_id bigint not null references public.matches on delete cascade,
-  team_id bigint references public.teams, minute smallint, extra_minute smallint, event_type text not null check(event_type in ('goal','card','substitution','var','other')),
-  player_name text, detail text, payload jsonb not null default '{}'::jsonb
-);
-create table public.lineups (
-  id bigint generated always as identity primary key, match_id bigint not null references public.matches on delete cascade, team_id bigint not null references public.teams,
-  formation text, confirmed boolean not null default false, players jsonb not null default '[]'::jsonb, unique(match_id,team_id)
-);
-create table public.absences (
-  id bigint generated always as identity primary key, match_id bigint references public.matches on delete cascade, team_id bigint not null references public.teams,
-  player_name text not null, absence_type text not null check(absence_type in ('injury','suspension','doubtful','other')), reason text, expected_return date
-);
-create table public.bookmakers (id bigint generated always as identity primary key, name text not null unique, website text);
-create table public.markets (id bigint generated always as identity primary key, code text not null unique, name text not null, category text not null, is_active boolean not null default true);
-create table public.odds (
-  id bigint generated always as identity primary key, match_id bigint not null references public.matches on delete cascade,
-  bookmaker_id bigint not null references public.bookmakers, market_id bigint not null references public.markets,
-  selection text not null, price numeric(8,3) not null check(price > 1), captured_at timestamptz not null default now(), is_opening boolean not null default false
-);
-create index odds_history_idx on public.odds(match_id,market_id,selection,captured_at);
+function PicksView({onAdd}:{onAdd:(p:Pick)=>void}) {
+  const [cat,setCat]=useState("Svi predlozi");
+  const list=picks.filter(p=>cat==="Svi predlozi"||p.category===cat);
+  return <div><div className="max-w-2xl"><h2 className="text-2xl font-black">Predlozi dana</h2><p className="mt-1 text-sm text-slate-500">Predlozi su rangirani prema očekivanoj vrednosti, pouzdanosti i kvalitetu podataka. Ne predstavljaju garanciju dobitka.</p></div><div className="mt-6 flex gap-2 overflow-x-auto pb-2">{["Svi predlozi","Golovi","Ishod","Korneri","Kartoni"].map(x=><button key={x} onClick={()=>setCat(x)} className={`whitespace-nowrap rounded-full px-4 py-2 text-xs font-bold ${cat===x?"bg-ink text-white":"border border-slate-200 bg-white"}`}>{x}</button>)}</div><div className="card mt-4 p-5"><div className="hidden grid-cols-[1.4fr_1.2fr_.7fr_.7fr_.7fr_auto] gap-4 border-b pb-3 text-[10px] font-bold uppercase tracking-wider text-slate-400 md:grid"><span>Utakmica</span><span>Predlog</span><span>Kvota</span><span>Procena</span><span>Vrednost</span><span>Akcija</span></div>{list.slice().sort((a,b)=>b.ev-a.ev).map(p=><PickRow key={p.id} pick={p} onAdd={onAdd}/>)}</div></div>
+}
 
-create table public.profiles (
-  id uuid primary key references auth.users on delete cascade, display_name text, avatar_url text, role text not null default 'user' check(role in ('user','admin')),
-  monthly_stake_limit numeric(12,2), spending_warning_percent smallint not null default 75, pause_until timestamptz,
-  hide_high_risk boolean not null default false, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
-);
-create table public.user_favorite_teams (user_id uuid references auth.users on delete cascade, team_id bigint references public.teams on delete cascade, primary key(user_id,team_id));
-create table public.user_favorite_leagues (user_id uuid references auth.users on delete cascade, league_id bigint references public.leagues on delete cascade, primary key(user_id,league_id));
-create table public.user_favorite_markets (user_id uuid references auth.users on delete cascade, market_id bigint references public.markets on delete cascade, primary key(user_id,market_id));
+function TicketView({items,setItems}:{items:TicketItem[];setItems:(i:TicketItem[])=>void}) {
+  const [stake,setStake]=useState(10); const total=items.reduce((a,b)=>a*b.pick.odds,1);
+  return <div className="grid gap-6 xl:grid-cols-[1.4fr_.7fr]"><div><h2 className="text-2xl font-black">Moj tiket</h2><p className="text-sm text-slate-500">Sastavite i sačuvajte svoj tiket.</p><div className="card mt-6 p-5">{items.length===0?<div className="py-14 text-center"><Ticket className="mx-auto h-10 w-10 text-slate-300"/><b className="mt-4 block">Tiket je prazan</b><p className="text-xs text-slate-400">Dodajte predlog sa stranice Predlozi dana.</p></div>:items.map(({pick,match})=><div key={pick.id} className="flex items-center gap-3 border-b py-4 last:border-0"><div className="flex -space-x-2"><TeamCrest team={match.home} size="sm"/><TeamCrest team={match.away} size="sm"/></div><div className="min-w-0 flex-1"><b className="block truncate text-xs">{match.home.name} – {match.away.name}</b><p className="text-xs text-slate-500">{pick.selection}</p></div><b>{pick.odds.toFixed(2)}</b><button onClick={()=>setItems(items.filter(x=>x.pick.id!==pick.id))} className="text-slate-400"><X className="h-4 w-4"/></button></div>)}</div></div><aside className="card h-fit p-5"><h3 className="font-black">Pregled tiketa</h3><div className="mt-5 space-y-3 text-sm"><div className="flex justify-between text-slate-500"><span>Broj parova</span><b className="text-ink">{items.length}</b></div><div className="flex justify-between text-slate-500"><span>Ukupna kvota</span><b className="text-ink">{total.toFixed(2)}</b></div><label className="block text-xs font-bold">Ulog (€)<input type="number" value={stake} onChange={e=>setStake(Number(e.target.value))} className="focus-ring mt-2 w-full rounded-xl border border-slate-200 p-3 text-lg font-black"/></label><div className="rounded-xl bg-lime/30 p-4"><p className="text-xs">Moguća isplata</p><b className="text-2xl">{(stake*total).toFixed(2)} €</b></div><select className="w-full rounded-xl border border-slate-200 p-3 text-xs"><option>Izaberite kladionicu</option><option>Demo kladionica</option></select><textarea className="w-full rounded-xl border border-slate-200 p-3 text-xs" placeholder="Napomena..."/><button disabled={!items.length} onClick={()=>alert("Tiket je sačuvan u demonstracionom režimu.")} className="w-full rounded-xl bg-ink py-3 text-sm font-black text-white disabled:opacity-40">Sačuvaj tiket</button></div></aside></div>
+}
 
-create table public.analyses (
-  id uuid primary key default uuid_generate_v4(), match_id bigint not null references public.matches,
-  model_version text not null, data_snapshot jsonb not null, factor_scores jsonb not null, data_quality smallint not null check(data_quality between 0 and 100),
-  created_at timestamptz not null default now(), is_demo boolean not null default false
-);
-create table public.analysis_predictions (
-  id uuid primary key default uuid_generate_v4(), analysis_id uuid not null references public.analyses on delete cascade,
-  market_id bigint references public.markets, market_code text not null, selection text not null, probability numeric(7,6) not null check(probability > 0 and probability < 1),
-  fair_odds numeric(8,3) not null, offered_odds numeric(8,3), expected_value numeric(8,4), risk public.risk_level not null,
-  confidence smallint not null check(confidence between 0 and 100), explanation text, result public.outcome_status not null default 'pending',
-  settled_at timestamptz
-);
-create table public.tickets (
-  id uuid primary key default uuid_generate_v4(), user_id uuid not null references auth.users on delete cascade, status public.ticket_status not null default 'draft',
-  bookmaker_id bigint references public.bookmakers, stake numeric(12,2) check(stake >= 0), total_odds numeric(12,3), possible_payout numeric(12,2),
-  actual_payout numeric(12,2), note text, placed_at timestamptz, created_at timestamptz not null default now(), updated_at timestamptz not null default now()
-);
-create table public.ticket_items (
-  id uuid primary key default uuid_generate_v4(), ticket_id uuid not null references public.tickets on delete cascade,
-  prediction_id uuid references public.analysis_predictions, match_id bigint not null references public.matches,
-  market_code text not null, selection text not null, odds_snapshot numeric(8,3) not null, result public.outcome_status not null default 'pending',
-  unique(ticket_id,match_id,market_code,selection)
-);
-create table public.api_sync_logs (
-  id bigint generated always as identity primary key, service text not null, started_at timestamptz not null default now(), finished_at timestamptz,
-  status text not null check(status in ('running','success','error')), records_processed integer not null default 0, api_calls integer not null default 0, error_message text
-);
-create table public.analysis_settings (
-  id boolean primary key default true, risk_thresholds jsonb not null, factor_weights jsonb not null, updated_by uuid references auth.users, updated_at timestamptz not null default now(), check(id)
-);
+function ResultsView() {
+  return <div><h2 className="text-2xl font-black">Rezultati modela</h2><p className="text-sm text-slate-500">Transparentan pregled istorijskih performansi uz probni ulog od jedne jedinice.</p><div className="mt-6 grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Ukupno analiza" value="1.284" change="+84 mesec" icon={BarChart3} tone="dark"/><StatCard label="Dobitnih predloga" value="719" change="64,8%" icon={Trophy}/><StatCard label="Ukupan profit" value="+148,7 j." change="+11,6% ROI" icon={Wallet}/><StatCard label="Najveći niz" value="7" change="dobitnih" icon={TrendingUp}/></div><div className="card mt-6 p-5"><h3 className="font-black">ROI i uspešnost po mesecima</h3><div className="mt-4 h-80"><ResponsiveContainer width="100%" height="100%"><AreaChart data={modelHistory}><CartesianGrid vertical={false} stroke="#edf0f2"/><XAxis dataKey="month" axisLine={false} tickLine={false}/><YAxis axisLine={false} tickLine={false}/><Tooltip/><Area type="monotone" dataKey="success" stroke="#172033" fill="#17203318" strokeWidth={3}/><Area type="monotone" dataKey="roi" stroke="#8ab323" fill="#c8f55a55" strokeWidth={3}/></AreaChart></ResponsiveContainer></div></div></div>
+}
 
-alter table public.profiles enable row level security;
-alter table public.user_favorite_teams enable row level security;
-alter table public.user_favorite_leagues enable row level security;
-alter table public.user_favorite_markets enable row level security;
-alter table public.tickets enable row level security;
-alter table public.ticket_items enable row level security;
+function MatchDetail({match,onBack,onAdd}:{match:Match;onBack:()=>void;onAdd:(p:Pick)=>void}) {
+  const related=picks.filter(p=>p.matchId===match.id); const options=related.length?related:picks.slice(0,3);
+  return <div><button onClick={onBack} className="text-xs font-bold text-slate-500">← Nazad na utakmice</button><div className="card mt-4 overflow-hidden"><div className="bg-ink p-6 text-white md:p-8"><div className="text-center text-xs text-slate-400">{match.flag} {match.league} · {new Date(match.kickoff).toLocaleString("sr-RS")} · {match.stadium}</div><div className="mx-auto mt-7 grid max-w-2xl grid-cols-[1fr_auto_1fr] items-center gap-6"><div className="flex flex-col items-center"><TeamCrest team={match.home} size="lg"/><b className="mt-3 text-center">{match.home.name}</b></div><div className="text-center"><div className="text-3xl font-black">{match.status==="Završeno"?`${match.homeScore} : ${match.awayScore}`:new Date(match.kickoff).toLocaleTimeString("sr-RS",{hour:"2-digit",minute:"2-digit"})}</div><span className="mt-2 inline-block rounded-full bg-white/10 px-3 py-1 text-[10px] text-lime">{match.status}</span></div><div className="flex flex-col items-center"><TeamCrest team={match.away} size="lg"/><b className="mt-3 text-center">{match.away.name}</b></div></div></div><div className="scrollbar-none flex gap-6 overflow-x-auto border-b px-6 py-4 text-xs font-bold">{["Pregled","Forma","Međusobni susreti","Statistika","Sastavi","Povrede","Kvote","Analiza","Prognoza modela"].map((x,i)=><button key={x} className={i===0?"border-b-2 border-ink pb-3 -mb-3":""}>{x}</button>)}</div></div><div className="mt-5 grid gap-5 xl:grid-cols-[1.25fr_.75fr]"><div className="space-y-5"><div className="card p-5"><h3 className="font-black">Forma i napadački učinak</h3><div className="mt-5 grid grid-cols-2 gap-5"><TeamForm name={match.home.name} color={match.home.color} values={["P","P","N","P","I"]}/><TeamForm name={match.away.name} color={match.away.color} values={["N","P","P","I","P"]}/></div><div className="mt-6 grid grid-cols-2 gap-3 md:grid-cols-4">{[["Očekivani golovi",`${match.xgHome.toFixed(2)} / ${match.xgAway.toFixed(2)}`],["Više od 2,5","61%"],["Oba daju gol","58%"],["Prosek kornera","9,4"]].map(([a,b])=><div key={a} className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] text-slate-400">{a}</p><b>{b}</b></div>)}</div></div><div className="card p-5"><h3 className="font-black">Prognoza modela</h3><p className="mt-2 text-xs leading-5 text-slate-500">Procena kombinuje formu, domaći/gostujući učinak, snagu napada i odbrane, međusobne susrete i tržišne kvote. Podaci o potvrđenim sastavima i izostancima trenutno nisu dostupni.</p><div className="mt-4">{options.map(p=><PickRow key={p.id} pick={p} onAdd={onAdd}/>)}</div></div></div><aside className="space-y-5"><div className="card p-5"><h3 className="font-black">Osnovne kvote</h3><div className="mt-4 space-y-2">{[["Pobeda domaćina",match.odds.home],["Nerešeno",match.odds.draw],["Pobeda gosta",match.odds.away]].map(([x,o])=><div key={String(x)} className="flex justify-between rounded-xl bg-slate-50 p-3 text-xs"><span>{x}</span><b>{Number(o).toFixed(2)}</b></div>)}</div></div><div className="card p-5"><h3 className="font-black">Kretanje kvote</h3><div className="mt-4 h-32"><ResponsiveContainer width="100%" height="100%"><AreaChart data={[{t:"09h",v:1.84},{t:"12h",v:1.79},{t:"15h",v:1.81},{t:"18h",v:1.72}]}><XAxis dataKey="t" fontSize={9} axisLine={false} tickLine={false}/><Area type="monotone" dataKey="v" stroke="#e0762a" fill="#e0762a22" strokeWidth={2}/></AreaChart></ResponsiveContainer></div><p className="mt-2 text-[10px] text-amber-700">Kvota je pala 6,5% od otvaranja tržišta.</p></div><div className="rounded-2xl bg-amber-50 p-5 text-xs leading-5 text-amber-900"><b>Važno upozorenje</b><p className="mt-1">Analize predstavljaju statističke procene i ne garantuju dobitak. Kladite se odgovorno i samo sa novcem koji možete izgubiti.</p></div></aside></div></div>
+}
+function TeamForm({name,color,values}:{name:string;color:string;values:string[]}) {return <div><b className="text-xs">{name}</b><div className="mt-3 flex gap-1">{values.map((v,i)=><span key={i} style={{background:v==="P"?color:v==="N"?"#d7a72b":"#c34b52"}} className="grid h-7 w-7 place-items-center rounded-md text-[10px] font-black text-white">{v}</span>)}</div><div className="mt-3 text-xs text-slate-500">3 pobede · 1 nerešena · 1 poraz</div></div>}
 
-create policy "profile_owner_select" on public.profiles for select using (auth.uid()=id);
-create policy "profile_owner_update" on public.profiles for update using (auth.uid()=id);
-create policy "favorites_team_owner" on public.user_favorite_teams for all using (auth.uid()=user_id) with check(auth.uid()=user_id);
-create policy "favorites_league_owner" on public.user_favorite_leagues for all using (auth.uid()=user_id) with check(auth.uid()=user_id);
-create policy "favorites_market_owner" on public.user_favorite_markets for all using (auth.uid()=user_id) with check(auth.uid()=user_id);
-create policy "ticket_owner" on public.tickets for all using (auth.uid()=user_id) with check(auth.uid()=user_id);
-create policy "ticket_item_owner" on public.ticket_items for all using (
-  exists(select 1 from public.tickets t where t.id=ticket_id and t.user_id=auth.uid())
-) with check (exists(select 1 from public.tickets t where t.id=ticket_id and t.user_id=auth.uid()));
+export default function AppShell(){
+  const [view,setView]=useState<View>("Početna"); const [menu,setMenu]=useState(false); const [selected,setSelected]=useState<Match|null>(null);
+  const [ticket,setTicket]=useState<TicketItem[]>([]);
+  useEffect(()=>{const raw=localStorage.getItem("fa-ticket");if(raw)try{setTicket(JSON.parse(raw))}catch{}},[]);
+  useEffect(()=>{localStorage.setItem("fa-ticket",JSON.stringify(ticket))},[ticket]);
+  const add=(pick:Pick)=>{const match=matches.find(m=>m.id===pick.matchId)!;setTicket(x=>x.some(y=>y.pick.id===pick.id)?x:[...x,{pick,match}])};
+  const content=useMemo(()=>{if(selected)return <MatchDetail match={selected} onBack={()=>setSelected(null)} onAdd={add}/>; if(view==="Početna")return <Dashboard setView={setView} onOpen={setSelected} onAdd={add}/>;if(view==="Utakmice")return <MatchesView onOpen={setSelected}/>;if(view==="Predlozi dana"||view==="Moje analize")return <PicksView onAdd={add}/>;if(view==="Moj tiket")return <TicketView items={ticket} setItems={setTicket}/>;if(view==="Rezultati modela")return <ResultsView/>;return <GenericView view={view}/>},[view,selected,ticket]);
+  return <div className="min-h-screen bg-canvas"><Sidebar view={view} setView={v=>{setSelected(null);setView(v)}} open={menu} setOpen={setMenu}/><div className="lg:pl-64"><Header view={selected?"Utakmica":view} onMenu={()=>setMenu(true)}/><main className="mx-auto max-w-[1540px] p-4 md:p-8">{content}<div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-xs text-amber-900">Analize predstavljaju statističke procene i ne garantuju dobitak. Kladite se odgovorno i samo sa novcem koji možete izgubiti.</div></main></div></div>;
+}
+function GenericView({view}:{view:View}) {const copy:Record<string,string>={"Omiljeno":"Sačuvani timovi, lige i vrste opklada biće prikazani na vrhu kontrolne table.","Profil":"Upravljajte ličnim podacima i bezbednošću naloga.","Podešavanja":"Postavite mesečni limit uloga, upozorenje o potrošnji, period pauze i sakrivanje visokog rizika.","Admin panel":"Kontrolišite sinhronizaciju API servisa, lige, tržišta, pragove rizika i težine modela."};return <div><h2 className="text-2xl font-black">{view}</h2><p className="mt-1 text-sm text-slate-500">{copy[view]}</p><div className="card mt-6 p-6"><div className="grid gap-4 md:grid-cols-2"><label className="text-xs font-bold">Mesečni limit (€)<input className="mt-2 w-full rounded-xl border border-slate-200 p-3" defaultValue="100"/></label><label className="text-xs font-bold">Upozorenje potrošnje<select className="mt-2 w-full rounded-xl border border-slate-200 p-3"><option>Na 75% limita</option></select></label><label className="flex items-center justify-between rounded-xl bg-slate-50 p-4 text-xs font-bold">Sakrij predloge visokog rizika<input type="checkbox" defaultChecked className="h-5 w-5 accent-slate-900"/></label><label className="flex items-center justify-between rounded-xl bg-slate-50 p-4 text-xs font-bold">Pauza od klađenja<input type="checkbox" className="h-5 w-5 accent-slate-900"/></label></div><button onClick={()=>alert("Podešavanja su sačuvana u demo režimu.")} className="mt-5 rounded-xl bg-ink px-5 py-3 text-xs font-black text-white">Sačuvaj promene</button></div></div>}
 
-create or replace function public.handle_new_user() returns trigger language plpgsql security definer set search_path=public as $$
-begin insert into public.profiles(id,display_name) values(new.id,coalesce(new.raw_user_meta_data->>'display_name','Korisnik')); return new; end; $$;
-create trigger on_auth_user_created after insert on auth.users for each row execute procedure public.handle_new_user();
