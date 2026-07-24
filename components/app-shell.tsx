@@ -17,8 +17,35 @@ const secondary:[View,typeof Home][]=[["Profil",CircleUserRound],["Podešavanja"
 function Header({view,onMenu}:{view:View|"Utakmica";onMenu:()=>void}) {
   return <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-canvas/90 px-4 backdrop-blur md:px-8">
     <div className="flex items-center gap-3"><button onClick={onMenu} className="rounded-lg p-2 lg:hidden"><Menu/></button><div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-400">Pregled</p><h1 className="text-xl font-black tracking-tight md:text-2xl">{view}</h1></div></div>
-    <div className="flex items-center gap-2 md:gap-4"><div className="relative hidden md:block"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/><input className="focus-ring w-64 rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm" placeholder="Pretraži tim, ligu, utakmicu..."/></div><button className="relative rounded-xl border border-slate-200 bg-white p-2.5"><Bell className="h-4 w-4"/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/></button><div className="hidden items-center gap-2 sm:flex"><div className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">AM</div><div className="text-xs"><b>Aleksandar</b><p className="text-[10px] text-slate-400">Demo nalog</p></div><ChevronDown className="h-3 w-3"/></div></div>
+    <div className="flex items-center gap-2 md:gap-4"><div className="relative hidden md:block"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/><input className="focus-ring w-64 rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm" placeholder="Pretraži tim, ligu, utakmicu..."/></div><button className="relative rounded-xl border border-slate-200 bg-white p-2.5"><Bell className="h-4 w-4"/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/></button><div className="hidden items-center gap-2 sm:flex"><div className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">ST</div><div className="text-xs"><b>Stefan</b><p className="text-[10px] text-slate-400">Demo nalog</p></div><ChevronDown className="h-3 w-3"/></div></div>
   </header>
+}
+
+
+function LiveGreeting() {
+  const [now,setNow]=useState<Date|null>(null);
+
+  useEffect(()=>{
+    const update=()=>setNow(new Date());
+    update();
+    const timer=window.setInterval(update,1000);
+    return ()=>window.clearInterval(timer);
+  },[]);
+
+  const hour=now?.getHours() ?? 12;
+  const greeting=hour<12?"Dobro jutro":hour<18?"Dobar dan":"Dobro veče";
+  const date=now?.toLocaleDateString("sr-RS",{weekday:"long",day:"numeric",month:"long"});
+  const time=now?.toLocaleTimeString("sr-RS",{hour:"2-digit",minute:"2-digit",second:"2-digit"});
+
+  return <div>
+    <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
+      <span className="capitalize">{date ?? "Učitavanje datuma..."}</span>
+      <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 font-bold tabular-nums text-ink shadow-sm ring-1 ring-slate-200">
+        <Clock3 className="h-3.5 w-3.5 text-lime"/>{time ?? "--:--:--"}
+      </span>
+    </div>
+    <h2 className="mt-2 text-2xl font-black md:text-3xl">{greeting}, Stefane.</h2>
+  </div>
 }
 
 function Sidebar({view,setView,open,setOpen}:{view:View;setView:(v:View)=>void;open:boolean;setOpen:(x:boolean)=>void}) {
@@ -41,7 +68,7 @@ function PickRow({pick,onAdd}:{pick:Pick;onAdd:(p:Pick)=>void}) {
 function Dashboard({setView,onOpen,onAdd}:{setView:(v:View)=>void;onOpen:(m:Match)=>void;onAdd:(p:Pick)=>void}) {
   const today=new Date().toISOString().slice(0,10); const featured=matches.filter(m=>m.kickoff.slice(0,10)===today).slice(0,3);
   return <div className="space-y-7">
-    <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><p className="text-sm text-slate-500">Četvrtak, 23. jul</p><h2 className="mt-1 text-2xl font-black md:text-3xl">Dobro veče, Aleksandre.</h2><p className="mt-2 text-sm text-slate-500">Današnji pregled modela i tržišnih prilika.</p></div><button onClick={()=>setView("Utakmice")} className="focus-ring rounded-xl bg-lime px-5 py-3 text-sm font-black text-ink shadow-sm"><Sparkles className="mr-2 inline h-4 w-4"/>Analiziraj utakmicu</button></section>
+    <section className="flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><LiveGreeting/><p className="mt-2 text-sm text-slate-500">Današnji pregled modela i tržišnih prilika.</p></div><button onClick={()=>setView("Utakmice")} className="focus-ring rounded-xl bg-lime px-5 py-3 text-sm font-black text-ink shadow-sm"><Sparkles className="mr-2 inline h-4 w-4"/>Analiziraj utakmicu</button></section>
     <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4"><StatCard label="Analizirane utakmice" value="1.284" change="+12 danas" icon={Activity} tone="dark"/><StatCard label="Uspešnost modela" value="64,8%" change="+2,4%" icon={Target}/><StatCard label="ROI modela" value="+11,6%" change="+1,8%" icon={TrendingUp}/><StatCard label="Aktivne analize" value="28" change="6 uskoro" icon={Clock3}/></section>
     <section><div className="mb-4 flex items-center justify-between"><div><h3 className="text-lg font-black">Najzanimljivije danas</h3><p className="text-xs text-slate-400">Utakmice sa najboljim odnosom podataka i vrednosti</p></div><button onClick={()=>setView("Utakmice")} className="text-xs font-bold">Sve utakmice →</button></div><div className="grid gap-4 xl:grid-cols-3">{(featured.length?featured:matches.slice(4,7)).map(m=><MatchCard key={m.id} match={m} onOpen={onOpen}/>)}</div></section>
     <section className="grid gap-5 xl:grid-cols-[1.55fr_.8fr]"><div className="card p-5"><div className="flex items-center justify-between"><div><h3 className="font-black">Predlozi sa najvećom vrednošću</h3><p className="text-xs text-slate-400">Sortirano prema očekivanoj vrednosti</p></div><ListFilter className="h-4 w-4 text-slate-400"/></div><div className="mt-2">{picks.slice().sort((a,b)=>b.ev-a.ev).slice(0,4).map(p=><PickRow key={p.id} pick={p} onAdd={onAdd}/>)}</div></div><div className="card p-5"><div className="flex items-center justify-between"><h3 className="font-black">Učinak modela</h3><span className="text-[10px] text-slate-400">6 meseci</span></div><div className="mt-5 h-52"><ResponsiveContainer width="100%" height="100%"><AreaChart data={modelHistory}><defs><linearGradient id="roi" x1="0" y1="0" x2="0" y2="1"><stop offset="0%" stopColor="#a4d735" stopOpacity=".4"/><stop offset="100%" stopColor="#a4d735" stopOpacity="0"/></linearGradient></defs><CartesianGrid vertical={false} stroke="#edf0f2"/><XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={10}/><YAxis axisLine={false} tickLine={false} fontSize={10}/><Tooltip/><Area type="monotone" dataKey="roi" stroke="#7ba51a" strokeWidth={3} fill="url(#roi)"/></AreaChart></ResponsiveContainer></div><div className="mt-3 grid grid-cols-2 gap-2"><div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] text-slate-400">Dobitni niz</p><b className="text-xl">7</b></div><div className="rounded-xl bg-slate-50 p-3"><p className="text-[10px] text-slate-400">Prosečna kvota</p><b className="text-xl">1,84</b></div></div></div></section>
