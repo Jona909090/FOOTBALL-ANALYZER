@@ -9,18 +9,18 @@ import { MatchCard } from "./match-card";
 import { RiskBadge } from "./risk-badge";
 import { StatCard } from "./stat-card";
 import { TeamCrest } from "./team-crest";
+import { createClient } from "@/lib/supabase/client";
 
 type View="Početna"|"Utakmice"|"Predlozi dana"|"Moj tiket"|"Moje analize"|"Rezultati modela"|"Omiljeno"|"Profil"|"Podešavanja"|"Admin panel";
 const nav:[View,typeof Home][]=[["Početna",Home],["Utakmice",CalendarDays],["Predlozi dana",Sparkles],["Moj tiket",Ticket],["Moje analize",Target],["Rezultati modela",LineChart],["Omiljeno",Heart]];
 const secondary:[View,typeof Home][]=[["Profil",CircleUserRound],["Podešavanja",Settings],["Admin panel",ShieldCheck]];
 
-function Header({view,onMenu}:{view:View|"Utakmica";onMenu:()=>void}) {
+function Header({view,onMenu,isAuthenticated}:{view:View|"Utakmica";onMenu:()=>void;isAuthenticated:boolean}) {
   return <header className="sticky top-0 z-20 flex h-20 items-center justify-between border-b border-slate-200 bg-canvas/90 px-4 backdrop-blur md:px-8">
     <div className="flex items-center gap-3"><button onClick={onMenu} className="rounded-lg p-2 lg:hidden"><Menu/></button><div><p className="text-[10px] font-bold uppercase tracking-[.2em] text-slate-400">Pregled</p><h1 className="text-xl font-black tracking-tight md:text-2xl">{view}</h1></div></div>
-    <div className="flex items-center gap-2 md:gap-4"><div className="relative hidden md:block"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/><input className="focus-ring w-64 rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm" placeholder="Pretraži tim, ligu, utakmicu..."/></div><button className="relative rounded-xl border border-slate-200 bg-white p-2.5"><Bell className="h-4 w-4"/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/></button><div className="hidden items-center gap-2 sm:flex"><div className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">ST</div><div className="text-xs"><b>Stefan</b><p className="text-[10px] text-slate-400">Demo nalog</p></div><ChevronDown className="h-3 w-3"/></div></div>
+    <div className="flex items-center gap-2 md:gap-4"><div className="relative hidden md:block"><Search className="absolute left-3 top-2.5 h-4 w-4 text-slate-400"/><input className="focus-ring w-64 rounded-xl border border-slate-200 bg-white py-2 pl-9 pr-3 text-sm" placeholder="Pretraži tim, ligu, utakmicu..."/></div><button className="relative rounded-xl border border-slate-200 bg-white p-2.5"><Bell className="h-4 w-4"/><span className="absolute right-2 top-2 h-1.5 w-1.5 rounded-full bg-rose-500"/></button><div className="hidden items-center gap-2 sm:flex"><div className="grid h-9 w-9 place-items-center rounded-xl bg-ink text-sm font-bold text-lime">ST</div><div className="text-xs"><b>Stefan</b><p className="text-[10px] text-slate-400">{isAuthenticated?"Online nalog":"Demo nalog"}</p></div><ChevronDown className="h-3 w-3"/></div></div>
   </header>
 }
-
 
 function LiveGreeting() {
   const [now,setNow]=useState<Date|null>(null);
@@ -41,16 +41,16 @@ function LiveGreeting() {
     <div className="flex flex-wrap items-center gap-x-3 gap-y-1 text-sm text-slate-500">
       <span className="capitalize">{date ?? "Učitavanje datuma..."}</span>
       <span className="inline-flex items-center gap-1.5 rounded-lg bg-white px-2.5 py-1 font-bold tabular-nums text-ink shadow-sm ring-1 ring-slate-200">
-        <Clock3 className="h-3.5 w-3.5 text-lime"/>{time ?? "--:--:--"}
+        <Clock3 className="h-3.5 w-3.5 text-lime-dark"/>{time ?? "--:--:--"}
       </span>
     </div>
     <h2 className="mt-2 text-2xl font-black md:text-3xl">{greeting}, Stefane.</h2>
   </div>
 }
 
-function Sidebar({view,setView,open,setOpen}:{view:View;setView:(v:View)=>void;open:boolean;setOpen:(x:boolean)=>void}) {
+function Sidebar({view,setView,open,setOpen,isAuthenticated,onLogout}:{view:View;setView:(v:View)=>void;open:boolean;setOpen:(x:boolean)=>void;isAuthenticated:boolean;onLogout:()=>void}) {
   const link=([label,Icon]:[View,typeof Home])=><button key={label} onClick={()=>{setView(label);setOpen(false)}} className={`flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition ${view===label?"bg-lime text-ink":"text-slate-400 hover:bg-white/5 hover:text-white"}`}><Icon className="h-4 w-4"/>{label}{label==="Moj tiket"&&<span className="ml-auto rounded-full bg-white/15 px-2 text-[10px]">2</span>}</button>;
-  return <><div onClick={()=>setOpen(false)} className={`fixed inset-0 z-30 bg-black/40 lg:hidden ${open?"block":"hidden"}`}/><aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-ink p-5 text-white transition-transform lg:translate-x-0 ${open?"translate-x-0":"-translate-x-full"}`}><div className="flex items-center justify-between"><BrandMark/><button onClick={()=>setOpen(false)} className="lg:hidden"><X/></button></div><div className="mt-8 rounded-2xl bg-white/5 p-3"><div className="flex items-center gap-2 text-[11px] font-bold text-lime"><span className="h-2 w-2 animate-pulse rounded-full bg-lime"/>DEMO REŽIM</div><p className="mt-1 text-[10px] leading-4 text-slate-400">Prikazani podaci služe za demonstraciju funkcionalnosti.</p></div><nav className="mt-6 space-y-1">{nav.map(link)}</nav><div className="my-4 border-t border-white/10"/><nav className="space-y-1">{secondary.map(link)}</nav><div className="mt-auto rounded-2xl border border-white/10 p-3"><div className="flex items-center gap-2 text-xs font-bold"><ShieldCheck className="h-4 w-4 text-lime"/>Odgovorno klađenje</div><p className="mt-2 text-[10px] leading-4 text-slate-400">Analize su statističke procene i ne garantuju dobitak.</p></div><button className="mt-3 flex items-center gap-2 px-3 py-2 text-xs text-slate-400"><LogOut className="h-4 w-4"/>Odjavi se</button></aside></>;
+  return <><div onClick={()=>setOpen(false)} className={`fixed inset-0 z-30 bg-black/40 lg:hidden ${open?"block":"hidden"}`}/><aside className={`fixed inset-y-0 left-0 z-40 flex w-64 flex-col bg-ink p-5 text-white transition-transform lg:translate-x-0 ${open?"translate-x-0":"-translate-x-full"}`}><div className="flex items-center justify-between"><BrandMark/><button onClick={()=>setOpen(false)} className="lg:hidden"><X/></button></div><div className="mt-8 rounded-2xl bg-white/5 p-3"><div className="flex items-center gap-2 text-[11px] font-bold text-lime"><span className="h-2 w-2 animate-pulse rounded-full bg-lime"/>{isAuthenticated?"ONLINE NALOG":"DEMO REŽIM"}</div><p className="mt-1 text-[10px] leading-4 text-slate-400">{isAuthenticated?"Povezani ste sa svojim Supabase nalogom.":"Prikazani podaci služe za demonstraciju funkcionalnosti."}</p></div><nav className="mt-6 space-y-1">{nav.map(link)}</nav><div className="my-4 border-t border-white/10"/><nav className="space-y-1">{secondary.map(link)}</nav><div className="mt-auto rounded-2xl border border-white/10 p-3"><div className="flex items-center gap-2 text-xs font-bold"><ShieldCheck className="h-4 w-4 text-lime"/>Odgovorno klađenje</div><p className="mt-2 text-[10px] leading-4 text-slate-400">Analize su statističke procene i ne garantuju dobitak.</p></div><button onClick={onLogout} className="mt-3 flex items-center gap-2 px-3 py-2 text-xs text-slate-400 hover:text-white"><LogOut className="h-4 w-4"/>{isAuthenticated?"Odjavi se":"Idi na prijavu"}</button></aside></>;
 }
 
 function PickRow({pick,onAdd}:{pick:Pick;onAdd:(p:Pick)=>void}) {
@@ -105,11 +105,24 @@ function TeamForm({name,color,values}:{name:string;color:string;values:string[]}
 export default function AppShell(){
   const [view,setView]=useState<View>("Početna"); const [menu,setMenu]=useState(false); const [selected,setSelected]=useState<Match|null>(null);
   const [ticket,setTicket]=useState<TicketItem[]>([]);
+  const [isAuthenticated,setIsAuthenticated]=useState(false);
+  useEffect(()=>{
+    const supabase=createClient();
+    if(!supabase)return;
+    supabase.auth.getSession().then(({data})=>setIsAuthenticated(Boolean(data.session)));
+    const {data}=supabase.auth.onAuthStateChange((_event,session)=>setIsAuthenticated(Boolean(session)));
+    return ()=>data.subscription.unsubscribe();
+  },[]);
+  const logout=async()=>{
+    const supabase=createClient();
+    if(supabase)await supabase.auth.signOut();
+    window.location.href="/prijava";
+  };
   useEffect(()=>{const raw=localStorage.getItem("fa-ticket");if(raw)try{setTicket(JSON.parse(raw))}catch{}},[]);
   useEffect(()=>{localStorage.setItem("fa-ticket",JSON.stringify(ticket))},[ticket]);
   const add=(pick:Pick)=>{const match=matches.find(m=>m.id===pick.matchId)!;setTicket(x=>x.some(y=>y.pick.id===pick.id)?x:[...x,{pick,match}])};
   const content=useMemo(()=>{if(selected)return <MatchDetail match={selected} onBack={()=>setSelected(null)} onAdd={add}/>; if(view==="Početna")return <Dashboard setView={setView} onOpen={setSelected} onAdd={add}/>;if(view==="Utakmice")return <MatchesView onOpen={setSelected}/>;if(view==="Predlozi dana"||view==="Moje analize")return <PicksView onAdd={add}/>;if(view==="Moj tiket")return <TicketView items={ticket} setItems={setTicket}/>;if(view==="Rezultati modela")return <ResultsView/>;return <GenericView view={view}/>},[view,selected,ticket]);
-  return <div className="min-h-screen bg-canvas"><Sidebar view={view} setView={v=>{setSelected(null);setView(v)}} open={menu} setOpen={setMenu}/><div className="lg:pl-64"><Header view={selected?"Utakmica":view} onMenu={()=>setMenu(true)}/><main className="mx-auto max-w-[1540px] p-4 md:p-8">{content}<div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-xs text-amber-900">Analize predstavljaju statističke procene i ne garantuju dobitak. Kladite se odgovorno i samo sa novcem koji možete izgubiti.</div></main></div></div>;
+  return <div className="min-h-screen bg-canvas"><Sidebar view={view} setView={v=>{setSelected(null);setView(v)}} open={menu} setOpen={setMenu} isAuthenticated={isAuthenticated} onLogout={logout}/><div className="lg:pl-64"><Header view={selected?"Utakmica":view} onMenu={()=>setMenu(true)} isAuthenticated={isAuthenticated}/><main className="mx-auto max-w-[1540px] p-4 md:p-8">{content}<div className="mt-8 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-center text-xs text-amber-900">Analize predstavljaju statističke procene i ne garantuju dobitak. Kladite se odgovorno i samo sa novcem koji možete izgubiti.</div></main></div></div>;
 }
 function GenericView({view}:{view:View}) {const copy:Record<string,string>={"Omiljeno":"Sačuvani timovi, lige i vrste opklada biće prikazani na vrhu kontrolne table.","Profil":"Upravljajte ličnim podacima i bezbednošću naloga.","Podešavanja":"Postavite mesečni limit uloga, upozorenje o potrošnji, period pauze i sakrivanje visokog rizika.","Admin panel":"Kontrolišite sinhronizaciju API servisa, lige, tržišta, pragove rizika i težine modela."};return <div><h2 className="text-2xl font-black">{view}</h2><p className="mt-1 text-sm text-slate-500">{copy[view]}</p><div className="card mt-6 p-6"><div className="grid gap-4 md:grid-cols-2"><label className="text-xs font-bold">Mesečni limit (€)<input className="mt-2 w-full rounded-xl border border-slate-200 p-3" defaultValue="100"/></label><label className="text-xs font-bold">Upozorenje potrošnje<select className="mt-2 w-full rounded-xl border border-slate-200 p-3"><option>Na 75% limita</option></select></label><label className="flex items-center justify-between rounded-xl bg-slate-50 p-4 text-xs font-bold">Sakrij predloge visokog rizika<input type="checkbox" defaultChecked className="h-5 w-5 accent-slate-900"/></label><label className="flex items-center justify-between rounded-xl bg-slate-50 p-4 text-xs font-bold">Pauza od klađenja<input type="checkbox" className="h-5 w-5 accent-slate-900"/></label></div><button onClick={()=>alert("Podešavanja su sačuvana u demo režimu.")} className="mt-5 rounded-xl bg-ink px-5 py-3 text-xs font-black text-white">Sačuvaj promene</button></div></div>}
 
